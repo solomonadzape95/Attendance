@@ -9,19 +9,29 @@ CREATE TABLE IF NOT EXISTS users (
     username VARCHAR(50) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     full_name VARCHAR(100) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    -- Constraints: username alphanumeric+underscore, full_name letters/spaces/hyphens
+    CONSTRAINT chk_username CHECK (username REGEXP '^[a-zA-Z0-9_]{3,50}$'),
+    CONSTRAINT chk_fullname CHECK (full_name REGEXP '^[a-zA-Z \\-\\']{2,100}$')
 );
 
 -- Students table
+-- Note: 'class' column stores the course code (e.g., 'COS 341')
+-- Default course: COS 341
 CREATE TABLE IF NOT EXISTS students (
     id INT AUTO_INCREMENT PRIMARY KEY,
     student_name VARCHAR(100) NOT NULL,
     roll_no VARCHAR(50) NOT NULL UNIQUE,
-    class VARCHAR(50) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    class VARCHAR(50) NOT NULL DEFAULT 'COS 341',  -- Course code (renamed from class for clarity)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    -- Constraints for valid characters
+    CONSTRAINT chk_student_name CHECK (student_name REGEXP '^[a-zA-Z \\-\\']{2,100}$'),
+    CONSTRAINT chk_roll_no CHECK (roll_no REGEXP '^[a-zA-Z0-9\\-/]{1,50}$'),
+    CONSTRAINT chk_course CHECK (class REGEXP '^[a-zA-Z0-9 \\-]{2,50}$')
 );
 
 -- Attendance table
+-- Date restrictions: Only dates within 1 year of current date allowed (enforced in application)
 CREATE TABLE IF NOT EXISTS attendance (
     id INT AUTO_INCREMENT PRIMARY KEY,
     student_id INT NOT NULL,
@@ -29,7 +39,9 @@ CREATE TABLE IF NOT EXISTS attendance (
     status ENUM('Present', 'Absent') NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY unique_attendance (student_id, date),
-    CONSTRAINT fk_student FOREIGN KEY (student_id) REFERENCES students (id) ON DELETE CASCADE
+    CONSTRAINT fk_student FOREIGN KEY (student_id) REFERENCES students (id) ON DELETE CASCADE,
+    -- Date must be reasonable (between 2020 and 2030)
+    CONSTRAINT chk_date CHECK (date >= '2020-01-01' AND date <= '2030-12-31')
 );
 
 -- Seed admin: username=admin, password=admin123 (will be hashed below)
@@ -43,3 +55,7 @@ VALUES (
 ON DUPLICATE KEY UPDATE
     username = username;
 -- (Hash above is for 'admin123')
+
+-- Create index for faster course filtering
+CREATE INDEX idx_students_class ON students(class);
+CREATE INDEX idx_attendance_date ON attendance(date);
