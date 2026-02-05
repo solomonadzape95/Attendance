@@ -10,7 +10,7 @@ document.addEventListener("DOMContentLoaded", function () {
 		username: /^[a-zA-Z0-9_]{3,50}$/,
 		password: /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*#?&]{6,50}$/,
 		studentName: /^[a-zA-Z\s\-']{2,100}$/,
-		rollNo: /^[a-zA-Z0-9\-\/]{1,50}$/,
+		rollNo: /^[a-zA-Z0-9\-\/]{2,50}$/,
 		course: /^[a-zA-Z0-9\s\-]{2,50}$/,
 	};
 
@@ -23,7 +23,7 @@ document.addEventListener("DOMContentLoaded", function () {
 			"Password: 6-50 chars with at least one letter and one number",
 		studentName:
 			"Name: only letters, spaces, hyphens, apostrophes (2-100 chars)",
-		rollNo: "Roll No: only letters, numbers, hyphens, slashes (1-50 chars)",
+		rollNo: "Registration number: 2–50 chars, letters, numbers, hyphens, slashes only",
 		course: "Course: only letters, numbers, spaces, hyphens (2-50 chars)",
 	};
 

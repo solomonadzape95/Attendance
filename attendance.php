@@ -5,6 +5,7 @@ if (!isset($_SESSION['user'])) {
     exit();
 }
 include 'db.php';
+require __DIR__ . '/auth.php';
 
 // Default course code
 define('DEFAULT_COURSE', 'COS 341');
@@ -18,6 +19,7 @@ $errors = [];
 $msg    = '';
 
 if (isset($_POST['save'])) {
+    verify_csrf();
     $date = $_POST['date'];
 
     // Validate date format and range
@@ -64,12 +66,16 @@ $attendanceDates = $mysqli->query("SELECT DISTINCT date FROM attendance ORDER BY
 <html>
 
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Mark Attendance</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <script src="assets/js/app.js" defer></script>
 </head>
 
 <body>
-    <?php include __DIR__ . '/partials/header.php'; ?>
+    <?php include __DIR__ . '/partials/nav.php'; ?>
     <div class="container mt-4">
         <h3>Mark Attendance</h3>
 
@@ -129,6 +135,7 @@ $attendanceDates = $mysqli->query("SELECT DISTINCT date FROM attendance ORDER BY
         <?php endif; ?>
 
         <form method="POST">
+            <?= csrf_field(); ?>
             <div class="row mb-3">
                 <div class="col-md-4">
                     <label class="form-label">Select Date:</label>
@@ -143,7 +150,7 @@ $attendanceDates = $mysqli->query("SELECT DISTINCT date FROM attendance ORDER BY
                     <tr>
                         <th>ID</th>
                         <th>Name</th>
-                        <th>Roll No</th>
+                        <th>Registration No</th>
                         <th>Course</th>
                         <th>Status</th>
                     </tr>
