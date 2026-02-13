@@ -10,7 +10,7 @@ document.addEventListener("DOMContentLoaded", function () {
 		username: /^[a-zA-Z0-9_]{3,50}$/,
 		password: /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*#?&]{6,50}$/,
 		studentName: /^[a-zA-Z\s\-']{2,100}$/,
-		rollNo: /^[0-9\/]{1,50}$/,
+		rollNo: /^[0-9\/]{11}$/,
 		course: /^[a-zA-Z0-9\s\-]{2,50}$/,
 	};
 
@@ -115,7 +115,7 @@ document.addEventListener("DOMContentLoaded", function () {
 	});
 
 	rollNoInputs.forEach((input) => {
-		restrictInput(input, /[^a-zA-Z0-9\-\/]/g);
+		restrictInput(input, /[^0-9\/]/g);
 		input.addEventListener("blur", () => validateField(input, "rollNo"));
 	});
 

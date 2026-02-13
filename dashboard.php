@@ -39,7 +39,7 @@ $absent = $absent ? $absent->fetch_assoc()['total'] : 0;
 
     <div class="container mt-4">
         <h3 class="fw-bold">Welcome, <?php echo ucfirst($_SESSION['user']['username']); ?> 👋</h3>
-        <p class="text-muted">Here’s a quick overview of your attendance system.</p>
+        <p class="text-muted">COS 341 attendance overview.</p>
 
         <div class="row g-4 mt-2">
             <!-- Students -->

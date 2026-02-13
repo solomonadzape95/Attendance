@@ -14,28 +14,23 @@ $MAX_STUDENTS = 50;
 $errors      = [];
 $success_msg = '';
 
-// ADD student
+// ADD student (COS 341 only)
 if (isset($_POST['add'])) {
     verify_csrf();
-    $name   = trim($_POST['student_name']);
-    $roll   = trim($_POST['roll_no']);
-    $course = trim($_POST['course']);
+    $name = trim($_POST['student_name']);
+    $roll = trim($_POST['roll_no']);
+    $course = DEFAULT_COURSE;
 
     // Validation: Student name - only letters, spaces, hyphens, apostrophes (2-100 chars)
     if (!preg_match("/^[a-zA-Z\s\-']{2,100}$/", $name)) {
         $errors[] = "Student name must contain only letters, spaces, hyphens and apostrophes (2-100 characters).";
     }
 
-    // Validation: Registration number - alphanumeric, hyphens, slashes (2-50 chars)
-    if (strlen($roll) < 2 || strlen($roll) > 50) {
-        $errors[] = "Registration number must be between 2 and 50 characters.";
-    } elseif (!preg_match("/^[a-zA-Z0-9\-\/]+$/", $roll)) {
-        $errors[] = "Registration number may only contain letters, numbers, hyphens and slashes.";
-    }
-
-    // Validation: Course - alphanumeric, spaces, hyphens (2-50 chars)
-    if (!preg_match("/^[a-zA-Z0-9\s\-]{2,50}$/", $course)) {
-        $errors[] = "Course must contain only letters, numbers, spaces and hyphens (2-50 characters).";
+    // Validation: Registration number - numbers and slashes only, exactly 11 chars
+    if (strlen($roll) !== 11) {
+        $errors[] = "Registration number must be exactly 11 characters.";
+    } elseif (!preg_match("/^[0-9\/]{11}$/", $roll)) {
+        $errors[] = "Registration number may only contain numbers and slashes (11 characters).";
     }
 
     // Check max students limit
@@ -45,12 +40,12 @@ if (isset($_POST['add'])) {
         $errors[] = "Maximum student limit of $MAX_STUDENTS reached. Cannot add more students.";
     }
 
-    // Check if same student (roll_no) already enrolled in this course
+    // Check if registration number already exists (single course)
     $checkStmt = $mysqli->prepare("SELECT id FROM students WHERE roll_no = ? AND class = ?");
     $checkStmt->bind_param("ss", $roll, $course);
     $checkStmt->execute();
     if ($checkStmt->get_result()->num_rows > 0) {
-        $errors[] = "This student is already enrolled in this course.";
+        $errors[] = "This registration number is already in the class list.";
     }
 
     if (empty($errors)) {
@@ -79,20 +74,17 @@ if (isset($_POST['import']) && isset($_FILES['csv_file'])) {
         $countResult  = $mysqli->query("SELECT COUNT(*) as total FROM students");
         $currentCount = $countResult->fetch_assoc()['total'];
 
+        $course = DEFAULT_COURSE;
         while (($row = fgetcsv($handle)) !== false && $currentCount < $MAX_STUDENTS) {
-            if (count($row) >= 3) {
-                $name   = trim($row[0]);
-                $roll   = trim($row[1]);
-                $course = trim($row[2]);
+            if (count($row) >= 2) {
+                $name = trim($row[0]);
+                $roll = trim($row[1]);
 
-                // Validate each row (registration number 2-50 chars, letters/numbers/hyphens/slashes only)
+                // Validate each row (registration number exactly 11 chars, numbers/slashes only)
                 if (
                     preg_match("/^[a-zA-Z\s\-']{2,100}$/", $name) &&
-                    strlen($roll) >= 2 && strlen($roll) <= 50 && preg_match("/^[a-zA-Z0-9\-\/]+$/", $roll) &&
-                    preg_match("/^[a-zA-Z0-9\s\-]{2,50}$/", $course)
+                    strlen($roll) === 11 && preg_match("/^[0-9\/]{11}$/", $roll)
                 ) {
-
-                    // Check if same student already enrolled in this course
                     $checkStmt = $mysqli->prepare("SELECT id FROM students WHERE roll_no = ? AND class = ?");
                     $checkStmt->bind_param("ss", $roll, $course);
                     $checkStmt->execute();
@@ -151,7 +143,7 @@ $totalStudents = $countResult->fetch_assoc()['total'];
 <body>
     <?php include __DIR__ . '/partials/nav.php'; ?>
     <div class="container mt-4">
-        <h3>Manage Students <small class="text-muted">(<?= $totalStudents ?>/<?= $MAX_STUDENTS ?>)</small></h3>
+        <h3>Manage Students <small class="text-muted">COS 341 (<?= $totalStudents ?>/<?= $MAX_STUDENTS ?>)</small></h3>
 
         <?php if (isset($_GET['success'])): ?>
             <div class="alert alert-success">Student added successfully!</div>
@@ -171,25 +163,20 @@ $totalStudents = $countResult->fetch_assoc()['total'];
             </div>
         <?php endif; ?>
 
-        <!-- Add Student Form -->
+        <!-- Add Student Form (COS 341) -->
         <form method="POST" class="row g-2 mt-3 mb-3">
             <?= csrf_field(); ?>
-            <div class="col-md-3">
+            <div class="col-md-4">
                 <input type="text" name="student_name" class="form-control" placeholder="Student Name"
                     pattern="^[a-zA-Z\s\-']{2,100}$" title="Only letters, spaces, hyphens, apostrophes (2-100 chars)"
                     required>
             </div>
-            <div class="col-md-3">
-                <input type="text" name="roll_no" class="form-control" placeholder="Registration No (e.g. CSC/2021/001)"
-                    pattern="^[a-zA-Z0-9\-\/]{2,50}$" title="Letters, numbers, hyphens, slashes only (2-50 chars)"
-                    minlength="2" maxlength="50" required>
+            <div class="col-md-4">
+                <input type="text" name="roll_no" class="form-control" placeholder="Registration No (11 chars, e.g. 2021/001234)"
+                    pattern="^[0-9\/]{11}$" title="Numbers and slashes only, exactly 11 characters"
+                    minlength="11" maxlength="11" required>
             </div>
-            <div class="col-md-3">
-                <input type="text" name="course" class="form-control" placeholder="Course"
-                    value="<?= htmlspecialchars(DEFAULT_COURSE) ?>" pattern="^[a-zA-Z0-9\s\-]{2,50}$"
-                    title="Only letters, numbers, spaces, hyphens (2-50 chars)" required>
-            </div>
-            <div class="col-md-3">
+            <div class="col-md-4">
                 <button class="btn btn-primary w-100" name="add" <?= $totalStudents >= $MAX_STUDENTS ? 'disabled' : '' ?>>Add Student</button>
             </div>
         </form>
@@ -223,7 +210,6 @@ $totalStudents = $countResult->fetch_assoc()['total'];
                     <th>ID</th>
                     <th>Name</th>
                     <th>Registration No</th>
-                    <th>Course</th>
                     <th>Action</th>
                 </tr>
             </thead>
@@ -233,7 +219,6 @@ $totalStudents = $countResult->fetch_assoc()['total'];
                         <td><?= $row['id'] ?></td>
                         <td><?= htmlspecialchars($row['student_name']) ?></td>
                         <td><?= htmlspecialchars($row['roll_no']) ?></td>
-                        <td><?= htmlspecialchars($row['class']) ?></td>
                         <td>
                             <a href="?delete=<?= $row['id'] ?>" class="btn btn-danger btn-sm"
                                 onclick="return confirm('Delete this student?')">Delete</a>
@@ -253,16 +238,15 @@ $totalStudents = $countResult->fetch_assoc()['total'];
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <p>Your CSV file should have the following format:</p>
-                    <pre class="bg-light p-2">student_name,roll_no,course
-John Doe,CSC/2021/001,COS 341
-Jane Smith,CSC/2021/002,COS 341</pre>
+                    <p>Your CSV file should have the following format (course is COS 341):</p>
+                    <pre class="bg-light p-2">student_name,roll_no
+John Doe,2021/0012345
+Jane Smith,2021/0012346</pre>
                     <p><strong>Rules:</strong></p>
                     <ul>
                         <li>First row should be header (will be skipped)</li>
                         <li>Name: Letters, spaces, hyphens, apostrophes only</li>
-                        <li>Registration No: 2–50 chars, letters, numbers, hyphens, slashes only</li>
-                        <li>Course: Letters, numbers, spaces, hyphens only</li>
+                        <li>Registration No: exactly 11 chars, numbers and slashes only</li>
                         <li>Maximum <?= $MAX_STUDENTS ?> students allowed</li>
                     </ul>
                 </div>

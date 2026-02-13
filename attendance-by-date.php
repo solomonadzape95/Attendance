@@ -10,12 +10,8 @@ define('DEFAULT_COURSE', 'COS 341');
 $minDate = date('Y-m-d', strtotime('-1 year'));
 $maxDate = date('Y-m-d');
 
-$filterCourse = isset($_GET['course']) ? trim($_GET['course']) : '';
-$filterDate   = isset($_GET['date']) ? trim($_GET['date']) : '';
+$filterDate = isset($_GET['date']) ? trim($_GET['date']) : '';
 
-$courses = $mysqli->query("SELECT DISTINCT class FROM students ORDER BY class ASC");
-
-// Get distinct dates that have attendance (for quick links)
 $datesWithAttendance = $mysqli->query("SELECT DISTINCT date FROM attendance ORDER BY date DESC LIMIT 60");
 
 $records = [];
@@ -27,28 +23,16 @@ if ($filterDate) {
     if ($dateObj && $dateObj->format('Y-m-d') === $filterDate && $filterDate >= $minDate && $filterDate <= $maxDate) {
         $dateLabel = date('l, F j, Y', strtotime($filterDate));
 
-        if (!empty($filterCourse)) {
-            $stmt = $mysqli->prepare("
-                SELECT s.id, s.student_name, s.roll_no, s.class, a.status
-                FROM students s
-                LEFT JOIN attendance a ON s.id = a.student_id AND a.date = ?
-                WHERE s.class = ?
-                ORDER BY s.student_name ASC
-            ");
-            $stmt->bind_param("ss", $filterDate, $filterCourse);
-            $stmt->execute();
-            $result = $stmt->get_result();
-        } else {
-            $stmt = $mysqli->prepare("
-                SELECT s.id, s.student_name, s.roll_no, s.class, a.status
-                FROM students s
-                LEFT JOIN attendance a ON s.id = a.student_id AND a.date = ?
-                ORDER BY s.student_name ASC
-            ");
-            $stmt->bind_param("s", $filterDate);
-            $stmt->execute();
-            $result = $stmt->get_result();
-        }
+        $stmt = $mysqli->prepare("
+            SELECT s.id, s.student_name, s.roll_no, a.status
+            FROM students s
+            LEFT JOIN attendance a ON s.id = a.student_id AND a.date = ?
+            WHERE s.class = ?
+            ORDER BY s.student_name ASC
+        ");
+        $stmt->bind_param("ss", $filterDate, DEFAULT_COURSE);
+        $stmt->execute();
+        $result = $stmt->get_result();
 
         while ($row = $result->fetch_assoc()) {
             $status = $row['status'];
@@ -78,31 +62,17 @@ if ($filterDate) {
 <body class="bg-light">
     <?php include __DIR__ . '/partials/nav.php'; ?>
     <div class="container mt-4">
-        <h3><i class="bi bi-calendar3 me-2"></i>Attendance by Date</h3>
+        <h3><i class="bi bi-calendar3 me-2"></i>Attendance by Date <small class="text-muted">COS 341</small></h3>
         <p class="text-muted">View who was present or absent on a specific day.</p>
 
-        <!-- Date & course filter -->
+        <!-- Date filter -->
         <div class="card mb-4">
             <div class="card-body">
                 <form method="GET" class="row g-3 align-items-end">
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <label class="form-label">Date</label>
                         <input type="date" name="date" class="form-control" value="<?= htmlspecialchars($filterDate) ?>"
                             min="<?= $minDate ?>" max="<?= $maxDate ?>">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Course (optional)</label>
-                        <select name="course" class="form-select">
-                            <option value="">All courses</option>
-                            <?php
-                            $courses->data_seek(0);
-                            while ($row = $courses->fetch_assoc()): ?>
-                                <option value="<?= htmlspecialchars($row['class']) ?>"
-                                    <?= $filterCourse === $row['class'] ? 'selected' : '' ?>>
-                                    <?= htmlspecialchars($row['class']) ?>
-                                </option>
-                            <?php endwhile; ?>
-                        </select>
                     </div>
                     <div class="col-md-2">
                         <button type="submit" class="btn btn-primary w-100">View</button>
@@ -119,7 +89,7 @@ if ($filterDate) {
                     <div class="d-flex flex-wrap gap-2">
                         <?php while ($dr = $datesWithAttendance->fetch_assoc()):
                             $d = $dr['date'];
-                            $url = "attendance-by-date.php?date=" . urlencode($d) . ($filterCourse ? "&course=" . urlencode($filterCourse) : "");
+                            $url = "attendance-by-date.php?date=" . urlencode($d);
                             $active = ($d === $filterDate) ? 'bg-primary' : 'bg-light text-dark border';
                             ?>
                             <a href="<?= $url ?>" class="badge <?= $active ?> text-decoration-none"><?= date('M j, Y', strtotime($d)) ?></a>
@@ -164,7 +134,6 @@ if ($filterDate) {
                             <tr>
                                 <th>Name</th>
                                 <th>Registration No</th>
-                                <th>Course</th>
                                 <th>Status</th>
                             </tr>
                         </thead>
@@ -185,7 +154,6 @@ if ($filterDate) {
                                 <tr>
                                     <td><?= htmlspecialchars($r['student_name']) ?></td>
                                     <td><?= htmlspecialchars($r['roll_no']) ?></td>
-                                    <td><?= htmlspecialchars($r['class']) ?></td>
                                     <td><span class="badge <?= $badge ?>"><?= $text ?></span></td>
                                 </tr>
                             <?php endforeach; ?>
@@ -193,7 +161,7 @@ if ($filterDate) {
                     </table>
                 </div>
                 <?php if (empty($records)): ?>
-                    <div class="card-body text-center text-muted">No students found for this date and course.</div>
+                    <div class="card-body text-center text-muted">No students found for this date.</div>
                 <?php endif; ?>
             </div>
         <?php elseif ($filterDate && !$dateLabel): ?>

@@ -5,5 +5,5 @@ return [
     'db_user' => 'root',
     'db_pass' => '',
     'db_name' => 'attendance_db',
-    'app_name' => 'Attendance System',
+    'app_name' => 'COS 341 Attendance',
 ];

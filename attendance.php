@@ -43,21 +43,12 @@ if (isset($_POST['save'])) {
     }
 }
 
-// Get filter course if set
-$filterCourse = isset($_GET['course']) ? trim($_GET['course']) : '';
-
-// Get students (optionally filtered by course)
-if (!empty($filterCourse)) {
-    $stmt = $mysqli->prepare("SELECT * FROM students WHERE class = ? ORDER BY student_name ASC");
-    $stmt->bind_param("s", $filterCourse);
-    $stmt->execute();
-    $students = $stmt->get_result();
-} else {
-    $students = $mysqli->query("SELECT * FROM students ORDER BY student_name ASC");
-}
-
-// Get distinct courses for filter dropdown
-$courses = $mysqli->query("SELECT DISTINCT class FROM students ORDER BY class ASC");
+// Get all students (COS 341 only)
+$stmt = $mysqli->prepare("SELECT * FROM students WHERE class = ? ORDER BY student_name ASC");
+$course = DEFAULT_COURSE;
+$stmt->bind_param("s", $course);
+$stmt->execute();
+$students = $stmt->get_result();
 
 // Get attendance dates for reference (last 30 class dates)
 $attendanceDates = $mysqli->query("SELECT DISTINCT date FROM attendance ORDER BY date DESC LIMIT 30");
@@ -77,7 +68,7 @@ $attendanceDates = $mysqli->query("SELECT DISTINCT date FROM attendance ORDER BY
 <body>
     <?php include __DIR__ . '/partials/nav.php'; ?>
     <div class="container mt-4">
-        <h3>Mark Attendance</h3>
+        <h3>Mark Attendance <small class="text-muted">COS 341</small></h3>
 
         <?php if (!empty($errors)): ?>
             <div class="alert alert-danger">
@@ -92,31 +83,6 @@ $attendanceDates = $mysqli->query("SELECT DISTINCT date FROM attendance ORDER BY
         <?php if (!empty($msg)): ?>
             <div class="alert alert-success"><?= htmlspecialchars($msg) ?></div>
         <?php endif; ?>
-
-        <!-- Course Filter -->
-        <div class="card mb-3">
-            <div class="card-body">
-                <form method="GET" class="row g-2 align-items-center">
-                    <div class="col-md-4">
-                        <label class="form-label mb-0">Filter by Course:</label>
-                    </div>
-                    <div class="col-md-5">
-                        <select name="course" class="form-select">
-                            <option value="">All Courses</option>
-                            <?php while ($courseRow = $courses->fetch_assoc()): ?>
-                                <option value="<?= htmlspecialchars($courseRow['class']) ?>"
-                                    <?= $filterCourse === $courseRow['class'] ? 'selected' : '' ?>>
-                                    <?= htmlspecialchars($courseRow['class']) ?>
-                                </option>
-                            <?php endwhile; ?>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <button class="btn btn-secondary w-100" type="submit">Filter</button>
-                    </div>
-                </form>
-            </div>
-        </div>
 
         <!-- Previous Class Dates Reference -->
         <?php if ($attendanceDates->num_rows > 0): ?>
@@ -151,7 +117,6 @@ $attendanceDates = $mysqli->query("SELECT DISTINCT date FROM attendance ORDER BY
                         <th>ID</th>
                         <th>Name</th>
                         <th>Registration No</th>
-                        <th>Course</th>
                         <th>Status</th>
                     </tr>
                 </thead>
@@ -162,7 +127,6 @@ $attendanceDates = $mysqli->query("SELECT DISTINCT date FROM attendance ORDER BY
                                 <td><?= $row['id'] ?></td>
                                 <td><?= htmlspecialchars($row['student_name']) ?></td>
                                 <td><?= htmlspecialchars($row['roll_no']) ?></td>
-                                <td><?= htmlspecialchars($row['class']) ?></td>
                                 <td>
                                     <select name="status[<?= $row['id'] ?>]" class="form-select">
                                         <option value="Present">Present</option>
@@ -173,8 +137,7 @@ $attendanceDates = $mysqli->query("SELECT DISTINCT date FROM attendance ORDER BY
                         <?php endwhile; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="5" class="text-center text-muted">No students found.
-                                <?= !empty($filterCourse) ? 'Try a different filter.' : 'Add students first.' ?></td>
+                            <td colspan="4" class="text-center text-muted">No students found. Add students first.</td>
                         </tr>
                     <?php endif; ?>
                 </tbody>

@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS students (
     UNIQUE KEY unique_roll_class (roll_no, class),
     -- Constraints for valid characters (roll_no 2-50 chars to match app)
     CONSTRAINT chk_student_name CHECK (student_name REGEXP '^[a-zA-Z \\-\\']{2,100}$'),
-    CONSTRAINT chk_roll_no CHECK (roll_no REGEXP '^[a-zA-Z0-9\\-/]{2,50}$'),
+    CONSTRAINT chk_roll_no CHECK (roll_no REGEXP '^[0-9/]{11}$'),
     CONSTRAINT chk_course CHECK (class REGEXP '^[a-zA-Z0-9 \\-]{2,50}$')
 );
 
