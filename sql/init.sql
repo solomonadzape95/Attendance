@@ -17,16 +17,17 @@ CREATE TABLE IF NOT EXISTS users (
 
 -- Students table
 -- Note: 'class' column stores the course code (e.g., 'COS 341')
--- Default course: COS 341
+-- Same student (roll_no) can appear in multiple courses; unique per (roll_no, class)
 CREATE TABLE IF NOT EXISTS students (
     id INT AUTO_INCREMENT PRIMARY KEY,
     student_name VARCHAR(100) NOT NULL,
-    roll_no VARCHAR(50) NOT NULL UNIQUE,
+    roll_no VARCHAR(50) NOT NULL,
     class VARCHAR(50) NOT NULL DEFAULT 'COS 341',  -- Course code (renamed from class for clarity)
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    -- Constraints for valid characters
+    UNIQUE KEY unique_roll_class (roll_no, class),
+    -- Constraints for valid characters (roll_no 2-50 chars to match app)
     CONSTRAINT chk_student_name CHECK (student_name REGEXP '^[a-zA-Z \\-\\']{2,100}$'),
-    CONSTRAINT chk_roll_no CHECK (roll_no REGEXP '^[a-zA-Z0-9\\-/]{1,50}$'),
+    CONSTRAINT chk_roll_no CHECK (roll_no REGEXP '^[a-zA-Z0-9\\-/]{2,50}$'),
     CONSTRAINT chk_course CHECK (class REGEXP '^[a-zA-Z0-9 \\-]{2,50}$')
 );
 

@@ -5,11 +5,13 @@ if (!isset($_SESSION['user'])) {
     exit();
 }
 include 'db.php';
+require __DIR__ . '/auth.php';
 
 $errors = [];
 
 // ADD admin
 if (isset($_POST['add'])) {
+    verify_csrf();
     $full_name = trim($_POST['full_name']);
     $username  = trim($_POST['username']);
     $password  = $_POST['password'];
@@ -47,9 +49,9 @@ if (isset($_POST['add'])) {
     }
 }
 
-// DELETE student
+// DELETE admin/user
 if (isset($_GET['delete'])) {
-    $id = $_GET['delete'];
+    $id = intval($_GET['delete']);
     $mysqli->query("DELETE FROM users WHERE id=$id");
     header("Location: add-admin.php");
 }
@@ -59,12 +61,16 @@ $users = $mysqli->query("SELECT * FROM users ORDER BY id DESC");
 <html>
 
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Add Admin</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <script src="assets/js/app.js" defer></script>
 </head>
 
 <body>
-    <?php include __DIR__ . '/partials/header.php'; ?>
+    <?php include __DIR__ . '/partials/nav.php'; ?>
     <div class="container mt-4">
         <h3>Add an Admin</h3>
 
@@ -83,6 +89,7 @@ $users = $mysqli->query("SELECT * FROM users ORDER BY id DESC");
         <?php endif; ?>
 
         <form method="POST" class="form mt-3 mb-4" id="adminForm">
+            <?= csrf_field(); ?>
             <div class="mb-2">
                 <input type="text" name="full_name" class="form-control"
                     placeholder="Full Name (letters, spaces, hyphens only)" pattern="^[a-zA-Z\s\-']{2,100}$"

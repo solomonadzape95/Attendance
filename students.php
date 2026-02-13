@@ -5,6 +5,7 @@ if (!isset($_SESSION['user'])) {
     exit();
 }
 include 'db.php';
+require __DIR__ . '/auth.php';
 
 // Default course code
 define('DEFAULT_COURSE', 'COS 341');
@@ -15,6 +16,7 @@ $success_msg = '';
 
 // ADD student
 if (isset($_POST['add'])) {
+    verify_csrf();
     $name   = trim($_POST['student_name']);
     $roll   = trim($_POST['roll_no']);
     $course = trim($_POST['course']);
@@ -24,9 +26,11 @@ if (isset($_POST['add'])) {
         $errors[] = "Student name must contain only letters, spaces, hyphens and apostrophes (2-100 characters).";
     }
 
-    // Validation: Roll number - alphanumeric, hyphens, slashes (1-50 chars)
-    if (!preg_match("/^[a-zA-Z0-9\-\/]{1,50}$/", $roll)) {
-        $errors[] = "Roll number must contain only letters, numbers, hyphens and slashes (1-50 characters).";
+    // Validation: Registration number - alphanumeric, hyphens, slashes (2-50 chars)
+    if (strlen($roll) < 2 || strlen($roll) > 50) {
+        $errors[] = "Registration number must be between 2 and 50 characters.";
+    } elseif (!preg_match("/^[a-zA-Z0-9\-\/]+$/", $roll)) {
+        $errors[] = "Registration number may only contain letters, numbers, hyphens and slashes.";
     }
 
     // Validation: Course - alphanumeric, spaces, hyphens (2-50 chars)
@@ -41,12 +45,12 @@ if (isset($_POST['add'])) {
         $errors[] = "Maximum student limit of $MAX_STUDENTS reached. Cannot add more students.";
     }
 
-    // Check if roll number already exists
-    $checkStmt = $mysqli->prepare("SELECT id FROM students WHERE roll_no = ?");
-    $checkStmt->bind_param("s", $roll);
+    // Check if same student (roll_no) already enrolled in this course
+    $checkStmt = $mysqli->prepare("SELECT id FROM students WHERE roll_no = ? AND class = ?");
+    $checkStmt->bind_param("ss", $roll, $course);
     $checkStmt->execute();
     if ($checkStmt->get_result()->num_rows > 0) {
-        $errors[] = "Roll number already exists.";
+        $errors[] = "This student is already enrolled in this course.";
     }
 
     if (empty($errors)) {
@@ -60,6 +64,7 @@ if (isset($_POST['add'])) {
 
 // IMPORT students from CSV
 if (isset($_POST['import']) && isset($_FILES['csv_file'])) {
+    verify_csrf();
     $file = $_FILES['csv_file'];
 
     if ($file['error'] === UPLOAD_ERR_OK && pathinfo($file['name'], PATHINFO_EXTENSION) === 'csv') {
@@ -80,16 +85,16 @@ if (isset($_POST['import']) && isset($_FILES['csv_file'])) {
                 $roll   = trim($row[1]);
                 $course = trim($row[2]);
 
-                // Validate each row
+                // Validate each row (registration number 2-50 chars, letters/numbers/hyphens/slashes only)
                 if (
                     preg_match("/^[a-zA-Z\s\-']{2,100}$/", $name) &&
-                    preg_match("/^[a-zA-Z0-9\-\/]{1,50}$/", $roll) &&
+                    strlen($roll) >= 2 && strlen($roll) <= 50 && preg_match("/^[a-zA-Z0-9\-\/]+$/", $roll) &&
                     preg_match("/^[a-zA-Z0-9\s\-]{2,50}$/", $course)
                 ) {
 
-                    // Check if roll number exists
-                    $checkStmt = $mysqli->prepare("SELECT id FROM students WHERE roll_no = ?");
-                    $checkStmt->bind_param("s", $roll);
+                    // Check if same student already enrolled in this course
+                    $checkStmt = $mysqli->prepare("SELECT id FROM students WHERE roll_no = ? AND class = ?");
+                    $checkStmt->bind_param("ss", $roll, $course);
                     $checkStmt->execute();
 
                     if ($checkStmt->get_result()->num_rows === 0) {
@@ -135,12 +140,16 @@ $totalStudents = $countResult->fetch_assoc()['total'];
 <html>
 
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Manage Students</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <script src="assets/js/app.js" defer></script>
 </head>
 
 <body>
-    <?php include __DIR__ . '/partials/header.php'; ?>
+    <?php include __DIR__ . '/partials/nav.php'; ?>
     <div class="container mt-4">
         <h3>Manage Students <small class="text-muted">(<?= $totalStudents ?>/<?= $MAX_STUDENTS ?>)</small></h3>
 
@@ -164,15 +173,16 @@ $totalStudents = $countResult->fetch_assoc()['total'];
 
         <!-- Add Student Form -->
         <form method="POST" class="row g-2 mt-3 mb-3">
+            <?= csrf_field(); ?>
             <div class="col-md-3">
                 <input type="text" name="student_name" class="form-control" placeholder="Student Name"
                     pattern="^[a-zA-Z\s\-']{2,100}$" title="Only letters, spaces, hyphens, apostrophes (2-100 chars)"
                     required>
             </div>
             <div class="col-md-3">
-                <input type="text" name="roll_no" class="form-control" placeholder="Roll No"
-                    pattern="^[a-zA-Z0-9\-\/]{1,50}$" title="Only letters, numbers, hyphens, slashes (1-50 chars)"
-                    required>
+                <input type="text" name="roll_no" class="form-control" placeholder="Registration No (e.g. CSC/2021/001)"
+                    pattern="^[a-zA-Z0-9\-\/]{2,50}$" title="Letters, numbers, hyphens, slashes only (2-50 chars)"
+                    minlength="2" maxlength="50" required>
             </div>
             <div class="col-md-3">
                 <input type="text" name="course" class="form-control" placeholder="Course"
@@ -191,6 +201,7 @@ $totalStudents = $countResult->fetch_assoc()['total'];
             </div>
             <div class="card-body">
                 <form method="POST" enctype="multipart/form-data" class="row g-2 align-items-center">
+                    <?= csrf_field(); ?>
                     <div class="col-md-6">
                         <input type="file" name="csv_file" class="form-control" accept=".csv" required>
                     </div>
@@ -211,7 +222,7 @@ $totalStudents = $countResult->fetch_assoc()['total'];
                 <tr>
                     <th>ID</th>
                     <th>Name</th>
-                    <th>Roll No</th>
+                    <th>Registration No</th>
                     <th>Course</th>
                     <th>Action</th>
                 </tr>
@@ -250,7 +261,7 @@ Jane Smith,CSC/2021/002,COS 341</pre>
                     <ul>
                         <li>First row should be header (will be skipped)</li>
                         <li>Name: Letters, spaces, hyphens, apostrophes only</li>
-                        <li>Roll No: Letters, numbers, hyphens, slashes only</li>
+                        <li>Registration No: 2–50 chars, letters, numbers, hyphens, slashes only</li>
                         <li>Course: Letters, numbers, spaces, hyphens only</li>
                         <li>Maximum <?= $MAX_STUDENTS ?> students allowed</li>
                     </ul>
