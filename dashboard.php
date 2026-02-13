@@ -26,13 +26,16 @@ $absent = $absent ? $absent->fetch_assoc()['total'] : 0;
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Dashboard - Attendance System</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <script src="assets/js/app.js" defer></script>
 </head>
 
 <body class="bg-light">
-    <?php include __DIR__ . '/partials/header.php'; ?>
+    <?php include __DIR__ . '/partials/nav.php'; ?>
 
     <div class="container mt-4">
         <h3 class="fw-bold">Welcome, <?php echo ucfirst($_SESSION['user']['username']); ?> 👋</h3>
@@ -44,8 +47,10 @@ $absent = $absent ? $absent->fetch_assoc()['total'] : 0;
                 <div class="card shadow-sm border-0 rounded-3 h-100">
                     <div class="card-body text-center">
                         <i class="bi bi-people-fill display-5 text-primary"></i>
-                        <h5 class="mt-3">Students</h5>
-                        <h2 class="fw-bold"><?php echo $students; ?></h2>
+                        <h5 class="mt-3 mb-1">Total Students</h5>
+                        <p class="text-muted small mb-0">Enrolled in the system</p>
+                        <h2 class="fw-bold mt-2"><?php echo $students; ?></h2>
+                        <a href="students.php" class="btn btn-sm btn-outline-primary mt-2">View</a>
                     </div>
                 </div>
             </div>
@@ -55,8 +60,10 @@ $absent = $absent ? $absent->fetch_assoc()['total'] : 0;
                 <div class="card shadow-sm border-0 rounded-3 h-100">
                     <div class="card-body text-center">
                         <i class="bi bi-calendar-check-fill display-5 text-success"></i>
-                        <h5 class="mt-3">Attendance Records</h5>
-                        <h2 class="fw-bold"><?php echo $records; ?></h2>
+                        <h5 class="mt-3 mb-1">Attendance Marks</h5>
+                        <p class="text-muted small mb-0">Individual marks (student × date)</p>
+                        <h2 class="fw-bold mt-2"><?php echo $records; ?></h2>
+                        <a href="attendance-by-date.php" class="btn btn-sm btn-outline-success mt-2">By date</a>
                     </div>
                 </div>
             </div>
@@ -66,8 +73,10 @@ $absent = $absent ? $absent->fetch_assoc()['total'] : 0;
                 <div class="card shadow-sm border-0 rounded-3 h-100">
                     <div class="card-body text-center">
                         <i class="bi bi-person-check-fill display-5 text-success"></i>
-                        <h5 class="mt-3">Present</h5>
-                        <h2 class="fw-bold"><?php echo $present; ?></h2>
+                        <h5 class="mt-3 mb-1">Present Marks</h5>
+                        <p class="text-muted small mb-0">Times marked present</p>
+                        <h2 class="fw-bold mt-2"><?php echo $present; ?></h2>
+                        <a href="attendance-by-date.php" class="btn btn-sm btn-outline-success mt-2">By date</a>
                     </div>
                 </div>
             </div>
@@ -77,8 +86,10 @@ $absent = $absent ? $absent->fetch_assoc()['total'] : 0;
                 <div class="card shadow-sm border-0 rounded-3 h-100">
                     <div class="card-body text-center">
                         <i class="bi bi-person-x-fill display-5 text-danger"></i>
-                        <h5 class="mt-3">Absent</h5>
-                        <h2 class="fw-bold"><?php echo $absent; ?></h2>
+                        <h5 class="mt-3 mb-1">Absent Marks</h5>
+                        <p class="text-muted small mb-0">Times marked absent</p>
+                        <h2 class="fw-bold mt-2"><?php echo $absent; ?></h2>
+                        <a href="attendance-by-date.php" class="btn btn-sm btn-outline-danger mt-2">By date</a>
                     </div>
                 </div>
             </div>
