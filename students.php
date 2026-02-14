@@ -9,7 +9,6 @@ require __DIR__ . '/auth.php';
 
 // Default course code
 define('DEFAULT_COURSE', 'COS 341');
-$MAX_STUDENTS = 50;
 
 $errors      = [];
 $success_msg = '';
@@ -31,13 +30,6 @@ if (isset($_POST['add'])) {
         $errors[] = "Registration number must be exactly 11 characters.";
     } elseif (!preg_match("/^[0-9\/]{11}$/", $roll)) {
         $errors[] = "Registration number may only contain numbers and slashes (11 characters).";
-    }
-
-    // Check max students limit
-    $countResult   = $mysqli->query("SELECT COUNT(*) as total FROM students");
-    $totalStudents = $countResult->fetch_assoc()['total'];
-    if ($totalStudents >= $MAX_STUDENTS) {
-        $errors[] = "Maximum student limit of $MAX_STUDENTS reached. Cannot add more students.";
     }
 
     // Check if registration number already exists (single course)
@@ -70,12 +62,8 @@ if (isset($_POST['import']) && isset($_FILES['csv_file'])) {
         $skipped      = 0;
         $importErrors = [];
 
-        // Check current student count
-        $countResult  = $mysqli->query("SELECT COUNT(*) as total FROM students");
-        $currentCount = $countResult->fetch_assoc()['total'];
-
         $course = DEFAULT_COURSE;
-        while (($row = fgetcsv($handle)) !== false && $currentCount < $MAX_STUDENTS) {
+        while (($row = fgetcsv($handle)) !== false) {
             if (count($row) >= 2) {
                 $name = trim($row[0]);
                 $roll = trim($row[1]);
@@ -94,7 +82,6 @@ if (isset($_POST['import']) && isset($_FILES['csv_file'])) {
                         $stmt->bind_param("sss", $name, $roll, $course);
                         if ($stmt->execute()) {
                             $imported++;
-                            $currentCount++;
                         }
                     } else {
                         $skipped++;
@@ -105,10 +92,6 @@ if (isset($_POST['import']) && isset($_FILES['csv_file'])) {
             }
         }
         fclose($handle);
-
-        if ($currentCount >= $MAX_STUDENTS && !feof($handle)) {
-            $errors[] = "Import stopped: Maximum student limit of $MAX_STUDENTS reached.";
-        }
 
         $success_msg = "Imported $imported students. Skipped $skipped (duplicates or invalid data).";
     } else {
@@ -143,7 +126,7 @@ $totalStudents = $countResult->fetch_assoc()['total'];
 <body>
     <?php include __DIR__ . '/partials/nav.php'; ?>
     <div class="container mt-4">
-        <h3>Manage Students <small class="text-muted">COS 341 (<?= $totalStudents ?>/<?= $MAX_STUDENTS ?>)</small></h3>
+        <h3>Manage Students <small class="text-muted">COS 341 (<?= $totalStudents ?> students)</small></h3>
 
         <?php if (isset($_GET['success'])): ?>
             <div class="alert alert-success">Student added successfully!</div>
@@ -177,7 +160,7 @@ $totalStudents = $countResult->fetch_assoc()['total'];
                     minlength="11" maxlength="11" required>
             </div>
             <div class="col-md-4">
-                <button class="btn btn-primary w-100" name="add" <?= $totalStudents >= $MAX_STUDENTS ? 'disabled' : '' ?>>Add Student</button>
+                <button class="btn btn-primary w-100" name="add">Add Student</button>
             </div>
         </form>
 
@@ -193,14 +176,13 @@ $totalStudents = $countResult->fetch_assoc()['total'];
                         <input type="file" name="csv_file" class="form-control" accept=".csv" required>
                     </div>
                     <div class="col-md-3">
-                        <button class="btn btn-success w-100" name="import" <?= $totalStudents >= $MAX_STUDENTS ? 'disabled' : '' ?>>Import CSV</button>
+                        <button class="btn btn-success w-100" name="import">Import CSV</button>
                     </div>
                     <div class="col-md-3">
                         <a href="#" class="btn btn-outline-secondary w-100" data-bs-toggle="modal"
                             data-bs-target="#csvHelpModal">CSV Format Help</a>
                     </div>
                 </form>
-                <small class="text-muted mt-2 d-block">Maximum class size: <?= $MAX_STUDENTS ?> students</small>
             </div>
         </div>
 
@@ -247,7 +229,6 @@ Jane Smith,2021/0012346</pre>
                         <li>First row should be header (will be skipped)</li>
                         <li>Name: Letters, spaces, hyphens, apostrophes only</li>
                         <li>Registration No: exactly 11 chars, numbers and slashes only</li>
-                        <li>Maximum <?= $MAX_STUDENTS ?> students allowed</li>
                     </ul>
                 </div>
             </div>
